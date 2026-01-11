@@ -1,38 +1,10 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { createSupabaseBrowserClient } from "../../lib/supabase/client";
+import { createSupabaseServerClient } from "../../lib/supabase/server";
 
-
-export default function Header() {
-  const supabase = createSupabaseBrowserClient();
-  const [email, setEmail] = useState<string | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function load() {
-      const { data } = await supabase.auth.getUser();
-      if (!mounted) return;
-      setEmail(data.user?.email ?? null);
-    }
-
-    load();
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setEmail(session?.user?.email ?? null);
-    });
-
-    return () => {
-      mounted = false;
-      sub.subscription.unsubscribe();
-    };
-  }, [supabase]);
-
-  async function logout() {
-    await supabase.auth.signOut();
-  }
+export default async function Header() {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase.auth.getUser();
+  const user = data.user;
 
   return (
     <header className="flex items-center justify-between border-b px-6 py-4">
@@ -48,15 +20,12 @@ export default function Header() {
           Sell
         </Link>
 
-        {email ? (
+        {user ? (
           <>
-            <span className="text-gray-600">{email}</span>
-            <button
-              onClick={logout}
-              className="rounded-xl border px-3 py-1.5"
-            >
+            <span className="text-gray-600">{user.email}</span>
+            <Link className="rounded-xl border px-3 py-1.5" href="/auth/logout">
               Log out
-            </button>
+            </Link>
           </>
         ) : (
           <Link className="rounded-xl border px-3 py-1.5" href="/auth">

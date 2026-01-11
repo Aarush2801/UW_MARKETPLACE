@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { createSupabaseBrowserClient } from "../../lib/supabase/client";
 
 function isUWaterlooEmail(email: string) {
   return email.toLowerCase().endsWith("@uwaterloo.ca");

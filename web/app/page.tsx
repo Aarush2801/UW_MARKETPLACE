@@ -1,65 +1,83 @@
-import Image from "next/image";
+import { createSupabaseServerClient } from "../lib/supabase/server";
+import Link from "next/link";
 
-export default function Home() {
+type ListingImage = {
+  id: number;
+  url: string;
+};
+
+type Listing = {
+  id: number;
+  title: string;
+  description: string | null;
+  price_cents: number;
+  category: string | null;
+  condition: string | null;
+  status: string;
+  created_at: string;
+  listing_images: ListingImage[];
+};
+
+export default async function FeedPage() {
+  const supabase = await createSupabaseServerClient();
+
+  const { data: listings, error } = await supabase
+    .from("listings")
+    .select("id,title,description,price_cents,category,condition,status,created_at,listing_images(id,url)")
+    .eq("status", "active")
+    .order("created_at", { ascending: false });
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="p-6">
+      <div className="mx-auto max-w-3xl">
+        <div className="flex items-end justify-between">
+          <h1 className="text-2xl font-semibold">Listings</h1>
+          <Link className="rounded-xl border px-3 py-1.5 text-sm" href="/sell">
+            + Sell something
+          </Link>
+        </div>
+
+        {error && (
+          <p className="mt-4 text-sm text-red-600">
+            Failed to load listings: {error.message}
           </p>
+        )}
+
+        <div className="mt-6 space-y-4">
+          {(listings as Listing[] | null)?.map((l) => (
+            <div key={l.id} className="rounded-2xl border p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold">{l.title}</h2>
+                  {l.description && <p className="mt-1 text-sm text-gray-700">{l.description}</p>}
+                  <p className="mt-2 text-sm">
+                    <span className="font-medium">${(l.price_cents / 100).toFixed(2)}</span>
+                    {l.category ? <span className="text-gray-600"> • {l.category}</span> : null}
+                    {l.condition ? <span className="text-gray-600"> • {l.condition}</span> : null}
+                  </p>
+                </div>
+
+                {l.listing_images?.[0]?.url ? (
+                  // using img to keep it simple; we can switch to next/image later
+                  <img
+                    src={l.listing_images[0].url}
+                    alt={l.title}
+                    className="h-20 w-20 rounded-xl object-cover border"
+                  />
+                ) : (
+                  <div className="h-20 w-20 rounded-xl border flex items-center justify-center text-xs text-gray-500">
+                    No image
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {!error && (!listings || listings.length === 0) && (
+            <p className="text-sm text-gray-600">No listings yet.</p>
+          )}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
